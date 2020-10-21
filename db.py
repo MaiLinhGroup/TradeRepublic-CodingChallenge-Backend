@@ -72,7 +72,8 @@ def fetch_price_of_all_instruments() -> dict:
     cur.execute(sql_statement)
     rows = cur.fetchall()
     connection.close()
-    return dict(rows)
+    
+    return {k:{"price":v} for (k,v) in dict(rows).items()}
 
 def fetch_instrument_prices(isin: str) -> list:
     # fetch from db

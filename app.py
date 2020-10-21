@@ -4,6 +4,10 @@ import json
 import db
 import webserver
 
+HOST = "localhost"
+WS_PORT = 8080
+WEBSERVER_PORT = 8081
+
 # Corountines
 async def consume_instruments(host: str, port: int) -> None:
     ws_uri = f"ws://{host}:{port}/instruments"
@@ -28,9 +32,9 @@ if __name__ == "__main__":
     db.init()
     loop = asyncio.get_event_loop()
     try:
-        asyncio.ensure_future(consume_instruments(host="localhost", port=8080))
-        asyncio.ensure_future(consume_quotes(host="localhost", port=8080))
-        webserver.run()
+        asyncio.ensure_future(consume_instruments(host=HOST, port=WS_PORT))
+        asyncio.ensure_future(consume_quotes(host=HOST, port=WS_PORT))
+        webserver.run(HOST, WEBSERVER_PORT)
         loop.run_forever()
     except KeyboardInterrupt:
         pass

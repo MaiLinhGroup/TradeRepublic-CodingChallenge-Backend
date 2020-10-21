@@ -56,5 +56,5 @@ def create_candle_sticks(rows: list) -> list:
 
     return results
 
-def run():
-    web.run_app(web_server(), host='127.0.0.1', port=8081)
+def run(host: str, port: int) -> None:
+    web.run_app(web_server(), host=host, port=port)
