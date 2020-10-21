@@ -34,6 +34,8 @@ async def consume_instruments(host: str, port: int) -> None:
             message = json.loads(message)
             if message['type'] == "ADD":
                 add_instruments(message['data'])
+            else: 
+                del_instruments(message['data'])
 
 
 async def consume_quotes(host: str, port: int) -> None:
@@ -50,12 +52,48 @@ def log_message(message: str) -> None:
 def add_instruments(data: dict) -> None:
     connection = sqlite3.connect(db_path)
     cur = connection.cursor()
+    
     # store data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     rowdata = [data['isin'], data['description'], timestamp]
     cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
+    log_message("INSERT INTO instruments(isin, description, timestamp): " + ','.join(rowdata))
+    
     connection.commit()
     connection.close()
+
+def del_instruments(data: dict) -> None:
+    connection = sqlite3.connect(db_path)
+    cur = connection.cursor()
+    
+    # delete data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
+    cur.execute("DELETE FROM instruments WHERE isin = ?", [data['isin']])
+    log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
+    
+    connection.commit()
+    connection.close()
+
+def add_quotes(data: dict) -> None:
+    connection = sqlite3.connect(db_path)
+    cur = connection.cursor()
+    
+    # store data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
+    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    rowdata = [data['isin'], data['description'], timestamp]
+    cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
+    
+    connection.commit()
+    connection.close()
+
+# def del_quotes(data: dict) -> None:
+#     connection = sqlite3.connect(db_path)
+#     cur = connection.cursor()
+    
+#     # delete data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
+#     cur.execute("DELETE FROM quotes WHERE isin = ?", [data['isin']])
+#     log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
+    
+#     connection.commit()
     
 
 if __name__ == "__main__":
@@ -70,3 +108,5 @@ if __name__ == "__main__":
         pass
     finally:
         loop.close()
+        if os.path.exists(db_path):
+            os.remove(db_path)
