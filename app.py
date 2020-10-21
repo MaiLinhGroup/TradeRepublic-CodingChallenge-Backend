@@ -7,9 +7,6 @@ import json
 from datetime import datetime
 import time
 
-
-
-
 logging.basicConfig(level=logging.INFO)
 
 db_path = os.path.abspath(os.path.join(
@@ -17,16 +14,7 @@ db_path = os.path.abspath(os.path.join(
 db_sql_path = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'setup.sql'))
 
-
-def init():
-    with open(db_sql_path) as f:
-        connection = sqlite3.connect(db_path)
-        cursor = connection.cursor()
-        cursor.executescript(f.read())
-
-        connection.commit()
-        connection.close()
-
+# Corountines
 async def consume_instruments(host: str, port: int) -> None:
     ws_uri = f"ws://{host}:{port}/instruments"
     async with websockets.connect(ws_uri) as ws:
@@ -45,6 +33,16 @@ async def consume_quotes(host: str, port: int) -> None:
             message = json.loads(message)
             # message = { "data": { "price": 1317.8947, "isin": "LK5537038107" }, "type": "QUOTE" }
             add_quotes(message['data'])
+
+# functions
+def init():
+    with open(db_sql_path) as f:
+        connection = sqlite3.connect(db_path)
+        cursor = connection.cursor()
+        cursor.executescript(f.read())
+
+        connection.commit()
+        connection.close()
 
 def log_message(message: str) -> None:
     logging.info(f"Message: {message}")
