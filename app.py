@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime
 import time
+from aiohttp import web
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,6 +34,32 @@ async def consume_quotes(host: str, port: int) -> None:
             message = json.loads(message)
             # message = { "data": { "price": 1317.8947, "isin": "LK5537038107" }, "type": "QUOTE" }
             add_quotes(message['data'])
+
+async def get_instruments_prices(request):
+    #  fetch from db
+    connection = sqlite3.connect(db_path)
+    cur = connection.cursor()
+
+    sql_statement = """SELECT 
+	                        instruments.isin, latest_prices.price
+                        FROM
+                            instruments
+                        LEFT OUTER JOIN (SELECT
+                                isin, price , MAX(timestamp) as price_timestamp
+                        FROM
+                            quotes
+                        GROUP BY
+                            isin) as latest_prices on latest_prices.isin = instruments.isin;"""
+    cur.execute(sql_statement)
+    rows = cur.fetchall()
+    connection.close()
+
+    return web.Response(text=json.dumps(dict(rows)))
+
+async def web_server():
+    app = web.Application()
+    app.router.add_get('/prices', get_instruments_prices)
+    return app
 
 # functions
 def init():
@@ -92,6 +119,7 @@ if __name__ == "__main__":
     try:
         asyncio.ensure_future(consume_instruments(host="localhost", port=8080))
         asyncio.ensure_future(consume_quotes(host="localhost", port=8080))
+        web.run_app(web_server(), host='127.0.0.1', port=8081)
         loop.run_forever()
     except KeyboardInterrupt:
         pass
