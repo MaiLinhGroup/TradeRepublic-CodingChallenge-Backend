@@ -3,6 +3,12 @@ import logging
 import websockets
 import sqlite3
 import os
+import json
+from datetime import datetime
+import time
+
+
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,18 +31,32 @@ async def consume_instruments(host: str, port: int) -> None:
     ws_uri = f"ws://{host}:{port}/instruments"
     async with websockets.connect(ws_uri) as ws:
         async for message in ws:
-            log_message(message)
-            # business logic here
+            message = json.loads(message)
+            if message['type'] == "ADD":
+                add_instruments(message['data'])
+
 
 async def consume_quotes(host: str, port: int) -> None:
     ws_uri = f"ws://{host}:{port}/quotes"
     async with websockets.connect(ws_uri) as ws:
         async for message in ws:
-            log_message(message)
+            pass
+            # log_message(message)
             # business logic here
 
 def log_message(message: str) -> None:
     logging.info(f"Message: {message}")
+
+def add_instruments(data: dict) -> None:
+    connection = sqlite3.connect(db_path)
+    cur = connection.cursor()
+    # store data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
+    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    rowdata = [data['isin'], data['description'], timestamp]
+    cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
+    connection.commit()
+    connection.close()
+    
 
 if __name__ == "__main__":
     print('Create/Initialise db')

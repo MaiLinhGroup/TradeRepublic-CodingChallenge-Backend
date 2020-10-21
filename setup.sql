@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS quotes (
   timestamp TEXT
 );
 
-CREATE INDEX idx_quotes_isin
+CREATE INDEX IF NOT EXISTS idx_quotes_isin
 ON quotes(isin);
