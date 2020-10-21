@@ -1,6 +1,4 @@
 CREATE TABLE IF NOT EXISTS instruments (
-  -- it increments by default without need for AUTOINCREMENT
-  -- https://www.sqlite.org/autoinc.html
   id INTEGER PRIMARY KEY, 
   isin TEXT UNIQUE,
   description TEXT,
@@ -8,8 +6,6 @@ CREATE TABLE IF NOT EXISTS instruments (
 );
 
 CREATE TABLE IF NOT EXISTS quotes (
-  -- it increments by default without need for AUTOINCREMENT
-  -- https://www.sqlite.org/autoinc.html
   id INTEGER PRIMARY KEY, 
   isin TEXT UNIQUE,
   price REAL,
