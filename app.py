@@ -1,19 +1,11 @@
 import asyncio
 import logging
 import websockets
-import sqlite3
-import os
 import json
-from datetime import datetime
-import time
 from aiohttp import web
+import db
 
 logging.basicConfig(level=logging.INFO)
-
-db_path = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'quote_history_aggregator.db'))
-db_sql_path = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'setup.sql'))
 
 # Corountines
 async def consume_instruments(host: str, port: int) -> None:
@@ -22,9 +14,9 @@ async def consume_instruments(host: str, port: int) -> None:
         async for message in ws:
             message = json.loads(message)
             if message['type'] == "ADD":
-                add_instruments(message['data'])
+                db.add_instruments(message['data'])
             else: 
-                del_instruments(message['data'])
+                db.del_instruments(message['data'])
 
 
 async def consume_quotes(host: str, port: int) -> None:
@@ -32,16 +24,16 @@ async def consume_quotes(host: str, port: int) -> None:
     async with websockets.connect(ws_uri) as ws:
         async for message in ws:
             message = json.loads(message)
-            add_quotes(message['data'])
+            db.add_quotes(message['data'])
 
 async def get_instruments_prices(request):
-    return web.Response(text=json.dumps(fetch_price_of_all_instruments()))
+    return web.Response(text=json.dumps(db.fetch_price_of_all_instruments()))
 
 
 async def get_price_history(request):
     isin = request.match_info['isin']
 
-    rows = fetch_instrument_prices(isin)
+    rows = db.fetch_instrument_prices(isin)
     results = create_candle_sticks(rows)
 
     return web.Response(text=json.dumps(results))
@@ -53,91 +45,8 @@ async def web_server():
     return app
 
 # functions
-def init():
-    with open(db_sql_path) as f:
-        connection = sqlite3.connect(db_path)
-        cursor = connection.cursor()
-        cursor.executescript(f.read())
-
-        connection.commit()
-        connection.close()
-
 def log_message(message: str) -> None:
     logging.info(f"Message: {message}")
-
-def add_instruments(data: dict) -> None:
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
-    
-    # store data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
-    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
-    rowdata = [data['isin'], data['description'], timestamp]
-    cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
-    # log_message("INSERT INTO instruments(isin, description, timestamp): " + ','.join(rowdata))
-    
-    connection.commit()
-    connection.close()
-
-def del_instruments(data: dict) -> None:
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
-    
-    # delete data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
-    cur.execute("DELETE FROM instruments WHERE isin = ?", [data['isin']])
-    # log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
-    
-    connection.commit()
-    connection.close()
-
-def add_quotes(data: dict) -> None:
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
-    
-    # store data = { "price": 1317.8947, "isin": "LK5537038107" }
-    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
-    rowdata = [data['isin'], data['price'], timestamp]
-    cur.execute("INSERT INTO quotes(isin, price, timestamp) VALUES (?, ?, ?)", rowdata)
-    # log_message("INSERT INTO quotes(isin, price, timestamp)")
-    
-    connection.commit()
-    connection.close()
-
-def fetch_price_of_all_instruments() -> dict:
-     #  fetch from db
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
-
-    sql_statement = """SELECT 
-	                        instruments.isin, latest_prices.price
-                        FROM
-                            instruments
-                        LEFT OUTER JOIN (SELECT
-                                isin, price , MAX(timestamp) as price_timestamp
-                        FROM
-                            quotes
-                        GROUP BY
-                            isin) as latest_prices on latest_prices.isin = instruments.isin;"""
-    cur.execute(sql_statement)
-    rows = cur.fetchall()
-    connection.close()
-    return dict(rows)
-    
-def fetch_instrument_prices(isin: str) -> list:
-    # fetch from db
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
-
-    sql_statement = """
-    SELECT 
-	    price, strftime('%Y-%m-%d %H:%M:00', timestamp) AS candle_interval 
-    FROM 
-	    quotes 
-    WHERE isin = ? AND timestamp >= Datetime('now', '-30 minutes', 'localtime');
-    """
-    cur.execute(sql_statement, (isin, ))
-    rows = cur.fetchall()
-    connection.close()
-    return rows
 
 def create_candle(row: list) -> dict:
     return {
@@ -173,7 +82,7 @@ def create_candle_sticks(rows: list) -> list:
 
 if __name__ == "__main__":
     print('Create/Initialise db')
-    init()
+    db.init()
     loop = asyncio.get_event_loop()
     try:
         asyncio.ensure_future(consume_instruments(host="localhost", port=8080))
@@ -184,5 +93,4 @@ if __name__ == "__main__":
         pass
     finally:
         loop.close()
-        if os.path.exists(db_path):
-            os.remove(db_path)
+        db.remove_db()
