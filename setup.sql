@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS instruments (
 
 CREATE TABLE IF NOT EXISTS quotes (
   id INTEGER PRIMARY KEY, 
-  isin TEXT UNIQUE,
+  isin TEXT,
   price REAL,
   timestamp TEXT
 );

@@ -42,9 +42,9 @@ async def consume_quotes(host: str, port: int) -> None:
     ws_uri = f"ws://{host}:{port}/quotes"
     async with websockets.connect(ws_uri) as ws:
         async for message in ws:
-            pass
-            # log_message(message)
-            # business logic here
+            message = json.loads(message)
+            # message = { "data": { "price": 1317.8947, "isin": "LK5537038107" }, "type": "QUOTE" }
+            add_quotes(message['data'])
 
 def log_message(message: str) -> None:
     logging.info(f"Message: {message}")
@@ -57,7 +57,7 @@ def add_instruments(data: dict) -> None:
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     rowdata = [data['isin'], data['description'], timestamp]
     cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
-    log_message("INSERT INTO instruments(isin, description, timestamp): " + ','.join(rowdata))
+    # log_message("INSERT INTO instruments(isin, description, timestamp): " + ','.join(rowdata))
     
     connection.commit()
     connection.close()
@@ -68,7 +68,7 @@ def del_instruments(data: dict) -> None:
     
     # delete data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
     cur.execute("DELETE FROM instruments WHERE isin = ?", [data['isin']])
-    log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
+    # log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
     
     connection.commit()
     connection.close()
@@ -77,23 +77,14 @@ def add_quotes(data: dict) -> None:
     connection = sqlite3.connect(db_path)
     cur = connection.cursor()
     
-    # store data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
+    # store data = { "price": 1317.8947, "isin": "LK5537038107" }
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
-    rowdata = [data['isin'], data['description'], timestamp]
-    cur.execute("INSERT INTO instruments(isin, description, timestamp) VALUES (?, ?, ?)", rowdata)
+    rowdata = [data['isin'], data['price'], timestamp]
+    cur.execute("INSERT INTO quotes(isin, price, timestamp) VALUES (?, ?, ?)", rowdata)
+    # log_message("INSERT INTO quotes(isin, price, timestamp)")
     
     connection.commit()
     connection.close()
-
-# def del_quotes(data: dict) -> None:
-#     connection = sqlite3.connect(db_path)
-#     cur = connection.cursor()
-    
-#     # delete data = {'description': 'est similique constituam', 'isin': 'DC0454155462'}
-#     cur.execute("DELETE FROM quotes WHERE isin = ?", [data['isin']])
-#     log_message("DELETE FROM instruments WHERE isin = " + data['isin'])
-    
-#     connection.commit()
     
 
 if __name__ == "__main__":
