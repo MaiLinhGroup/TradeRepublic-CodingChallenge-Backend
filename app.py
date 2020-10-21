@@ -59,26 +59,8 @@ async def get_price_history(request):
     isin = request.match_info['isin']
 
     rows = fetch_instrument_prices(isin)
+    results = create_candle_sticks(rows)
 
-    results = []
-
-    current = create_candle(rows[0])
-
-    for row in rows:
-        (price, timestamp) = row
-
-        if timestamp != current['openTimestamp']:
-            current['closeTimestamp'] = timestamp
-            results.append(current)
-            current = create_candle(row)
-        
-        current['lowPrice'] = min(price, current['lowPrice'])
-        current['highPrice'] = max(price, current['highPrice'])
-        
-        # last price of each row is always close price
-        current['closePrice'] = price
-
-    results.append(current)
     return web.Response(text=json.dumps(results))
 
 
@@ -156,7 +138,6 @@ def fetch_instrument_prices(isin: str) -> list:
     connection.close()
     return rows
 
-
 def create_candle(row: list) -> dict:
     return {
         "openTimestamp": row[1], 
@@ -166,6 +147,28 @@ def create_candle(row: list) -> dict:
         "closePrice": row[0],
         "closeTimestamp":row[1],
     }
+
+def create_candle_sticks(rows: list) -> list:
+    results = []
+
+    current = create_candle(rows[0])
+    for row in rows:
+        (price, timestamp) = row
+
+        if timestamp != current['openTimestamp']:
+            current['closeTimestamp'] = timestamp
+            results.append(current)
+            current = create_candle(row)
+        
+        current['lowPrice'] = min(price, current['lowPrice'])
+        current['highPrice'] = max(price, current['highPrice'])
+        
+        # last price of each row is always close price
+        current['closePrice'] = price
+    
+    results.append(current)
+
+    return results
 
 if __name__ == "__main__":
     print('Create/Initialise db')
