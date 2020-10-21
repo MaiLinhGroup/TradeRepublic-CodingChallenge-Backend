@@ -2,7 +2,7 @@
 Thank you for your interest in Trade Republic.
 To proceed with your interview process, we have prepared a short coding exercise for you.
 
-The goal of this test is to see how you work in general and that tools you are comfortable with.
+The goal of this test is to see how you work in general and what tools you are comfortable with.
 
 As this is a coding test and not a Math exam, algorithms/complex datastructures can be implemented the naive way and we can talk about possible performance improvements later.
 
@@ -90,8 +90,8 @@ If you restart the PartnerService, you will have to clean up any data you might 
 
 ### `/instrument` Specification
 The `/instruments` Websocket provides all currently active Instruments `onConnect` as well as a stream of add/delete events of instruments.
-When you receive a `delete` event, the instrument is no longer available and will not receive any more qoutes (beware out of order messages on the `/quotes` stream)
-The Instruments are uniquely identified by their `isin`. Beware, ISINs can be reused AFTER an instrument has been deleted. In any case, you would see a regular `ADD` event for this new instrument, even when it reuses an ISIN.
+When you receive a `delete` event, the instrument is no longer available and will not receive any more quotes (__beware out of order messages__ on the `/quotes` stream).
+The Instruments are uniquely identified by their `ISIN`. Beware, ISINs can be reused AFTER an instrument has been deleted. In any case, you would see a regular `ADD` event for this new instrument, even when it reuses an ISIN.
 ```
 {
     // The type of the event. ADD if an instrument is ADDED
@@ -112,11 +112,11 @@ The Instruments are uniquely identified by their `isin`. Beware, ISINs can be re
 
 ### `/quotes` Specification
 The `/quotes` Websocket provides prices for available instruments at an arbitrary rate.
-It only streams prices for available instruments (beware out of order messages)
+It only streams prices for available instruments (__beware out of order messages__)
 ```
 {
     // The type of the event.
-    // QUOTE if an new price is available for an instrument identified by the ISIN
+    // QUOTE if a new price is available for an instrument identified by the ISIN
     "type": "QUOTE"
     {
         //The Payload
