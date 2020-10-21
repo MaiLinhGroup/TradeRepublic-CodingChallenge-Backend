@@ -35,25 +35,8 @@ async def consume_quotes(host: str, port: int) -> None:
             add_quotes(message['data'])
 
 async def get_instruments_prices(request):
-    #  fetch from db
-    connection = sqlite3.connect(db_path)
-    cur = connection.cursor()
+    return web.Response(text=json.dumps(fetch_price_of_all_instruments()))
 
-    sql_statement = """SELECT 
-	                        instruments.isin, latest_prices.price
-                        FROM
-                            instruments
-                        LEFT OUTER JOIN (SELECT
-                                isin, price , MAX(timestamp) as price_timestamp
-                        FROM
-                            quotes
-                        GROUP BY
-                            isin) as latest_prices on latest_prices.isin = instruments.isin;"""
-    cur.execute(sql_statement)
-    rows = cur.fetchall()
-    connection.close()
-    
-    return web.Response(text=json.dumps(dict(rows)))
 
 async def get_price_history(request):
     isin = request.match_info['isin']
@@ -62,8 +45,6 @@ async def get_price_history(request):
     results = create_candle_sticks(rows)
 
     return web.Response(text=json.dumps(results))
-
-
 
 async def web_server():
     app = web.Application()
@@ -121,6 +102,26 @@ def add_quotes(data: dict) -> None:
     connection.commit()
     connection.close()
 
+def fetch_price_of_all_instruments() -> dict:
+     #  fetch from db
+    connection = sqlite3.connect(db_path)
+    cur = connection.cursor()
+
+    sql_statement = """SELECT 
+	                        instruments.isin, latest_prices.price
+                        FROM
+                            instruments
+                        LEFT OUTER JOIN (SELECT
+                                isin, price , MAX(timestamp) as price_timestamp
+                        FROM
+                            quotes
+                        GROUP BY
+                            isin) as latest_prices on latest_prices.isin = instruments.isin;"""
+    cur.execute(sql_statement)
+    rows = cur.fetchall()
+    connection.close()
+    return dict(rows)
+    
 def fetch_instrument_prices(isin: str) -> list:
     # fetch from db
     connection = sqlite3.connect(db_path)
@@ -165,7 +166,7 @@ def create_candle_sticks(rows: list) -> list:
         
         # last price of each row is always close price
         current['closePrice'] = price
-    
+
     results.append(current)
 
     return results
